@@ -1,0 +1,177 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowRight, Loader2 } from "lucide-react";
+import AudioInput from "@/components/AudioInput";
+import PatientInfoForm from "@/components/PatientInfoForm";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+
+export default function AnalyzePage() {
+  const navigate = useNavigate();
+  const [patientInfo, setPatientInfo] = useState({
+    name: "",
+    age: "",
+    gender: "",
+  });
+  const [audioBlob, setAudioBlob] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    let interval;
+    if (isAnalyzing) {
+      setProgress(0);
+      interval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 95) {
+            return prev;
+          }
+          return prev + 1;
+        });
+      }, 30);
+    } else {
+      setProgress(0);
+    }
+    return () => clearInterval(interval);
+  }, [isAnalyzing]);
+
+  const isFormValid = () => {
+    return patientInfo.age && patientInfo.gender && audioBlob;
+  };
+
+  const handleAnalyze = async () => {
+    if (!isFormValid()) {
+      alert("Please fill in all required fields and provide audio input");
+      return;
+    }
+
+    setIsAnalyzing(true);
+
+    // Simulate ML model processing
+    setTimeout(() => {
+      setProgress(100);
+      setTimeout(() => {
+        setIsAnalyzing(false);
+        // Navigate to results page with patient info
+        navigate("/results", { state: { patientInfo } });
+      }, 300);
+    }, 3000);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Page Header */}
+        <div className="text-center max-w-3xl mx-auto mb-12">
+          <h1 className="text-3xl sm:text-4xl font-bold mb-4 text-gray-900 dark:text-white">
+            Health Analysis
+            <span className="bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent">
+              {" "}
+              Dashboard
+            </span>
+          </h1>
+          <p className="text-lg text-gray-600 dark:text-gray-300">
+            Complete the form below and provide audio input to get your health
+            analysis
+          </p>
+        </div>
+
+        {/* Analysis Form */}
+        <div className="max-w-4xl mx-auto space-y-6">
+          {/* Step 1: Patient Information */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white font-bold">
+                1
+              </div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Patient Information
+              </h2>
+            </div>
+            <PatientInfoForm
+              patientInfo={patientInfo}
+              onPatientInfoChange={setPatientInfo}
+            />
+          </div>
+
+          {/* Step 2: Audio Input */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center text-white font-bold">
+                2
+              </div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Audio Input
+              </h2>
+            </div>
+            <AudioInput onAudioChange={setAudioBlob} />
+          </div>
+
+          {/* Analyze Button */}
+          <Card className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border-2">
+            <CardContent>
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-1">
+                    Ready to Analyze?
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {isFormValid()
+                      ? "All information provided. Click analyze to get your results."
+                      : "Please complete all required fields before analyzing."}
+                  </p>
+                </div>
+                <Button
+                  size="lg"
+                  onClick={handleAnalyze}
+                  disabled={!isFormValid() || isAnalyzing}
+                  className="w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      Analyze Health
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Processing Indicator */}
+          {isAnalyzing && (
+            <Card className="border-2 border-emerald-200 dark:border-emerald-800">
+              <CardContent>
+                <div className="flex items-center gap-4">
+                  <div className="shrink-0">
+                    <Loader2 className="h-8 w-8 text-emerald-600 dark:text-emerald-400 animate-spin" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
+                      Processing Your Audio...
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Our AI model is analyzing your voice patterns. This may
+                      take a few moments.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                  <div
+                    className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full transition-all duration-300 ease-out"
+                    style={{ width: `${progress}%` }}
+                  ></div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
