@@ -1,0 +1,18 @@
+import express from "express";
+import {
+  deleteAnalysisHistory,
+  getAnalysisHistory,
+  getRecommendation,
+} from "../controllers/analysis.controller";
+import { checkAuth } from "../middlewares/auth.middleware";
+import upload from "../config/multer";
+
+const router = express.Router();
+
+router.post("/recommend", checkAuth, upload.single("file"), getRecommendation);
+
+router.get("/history", checkAuth, getAnalysisHistory);
+
+router.delete("/history/:analysisId", checkAuth, deleteAnalysisHistory);
+
+export default router;
