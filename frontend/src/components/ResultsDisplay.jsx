@@ -164,7 +164,7 @@ export default function ResultsDisplay({ patientInfo }) {
       text,
       fontSize = 10,
       isBold = false,
-      color = [0, 0, 0]
+      color = [0, 0, 0],
     ) => {
       doc.setFontSize(fontSize);
       doc.setTextColor(color[0], color[1], color[2]);
@@ -216,7 +216,7 @@ export default function ResultsDisplay({ patientInfo }) {
       `Gender: ${
         results.gender.charAt(0).toUpperCase() + results.gender.slice(1)
       }`,
-      11
+      11,
     );
     addSpace(10);
 
@@ -256,7 +256,7 @@ export default function ResultsDisplay({ patientInfo }) {
         "No medications required at this time.",
         10,
         false,
-        [107, 114, 128]
+        [107, 114, 128],
       );
     }
     addSpace(15);
@@ -269,7 +269,7 @@ export default function ResultsDisplay({ patientInfo }) {
       "This is an AI-generated analysis. Please consult with a healthcare professional for proper medical advice and treatment.",
       9,
       false,
-      [113, 63, 18]
+      [113, 63, 18],
     );
 
     // Save the PDF
@@ -348,15 +348,15 @@ export default function ResultsDisplay({ patientInfo }) {
             <CardTitle className="text-xl">Diagnosis</CardTitle>
             <Badge
               className={`${getSeverityColor(
-                results.severity
+                results.severity,
               )} text-white flex items-center gap-1`}
             >
               <SeverityIcon className="h-3 w-3" />
               {results.severity === "low"
                 ? "Normal"
                 : results.severity === "medium"
-                ? "Monitor"
-                : "Urgent"}
+                  ? "Monitor"
+                  : "Urgent"}
             </Badge>
           </div>
         </CardHeader>

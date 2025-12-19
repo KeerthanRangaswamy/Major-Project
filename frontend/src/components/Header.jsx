@@ -15,7 +15,10 @@ export default function Header() {
         <div className="mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             {/* Logo */}
-            <Link to="/" className="flex items-center space-x-2 group cursor-pointer">
+            <Link
+              to="/"
+              className="flex items-center space-x-2 group cursor-pointer"
+            >
               <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-2 rounded-lg group-hover:scale-105 transition-transform">
                 <Activity className="h-6 w-6 text-white" />
               </div>

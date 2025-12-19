@@ -1,0 +1,17 @@
+import mongoose from "mongoose";
+
+export interface AnalysisBase {
+  userId: mongoose.Schema.Types.ObjectId;
+  audioFile: mongoose.Schema.Types.ObjectId;
+  age: number;
+  gender: string;
+  name?: string;
+  result: string;
+  createdAt: Date;
+}
+
+// For instance methods
+export interface AnalysisDocument extends mongoose.Document, AnalysisBase {}
+
+// For static methods
+export interface AnalysisModel extends mongoose.Model<AnalysisDocument> {}
