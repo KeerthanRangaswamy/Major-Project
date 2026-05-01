@@ -2,11 +2,13 @@ import { useLocation, useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Home } from "lucide-react";
 import ResultsDisplay from "@/components/ResultsDisplay";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 export default function ResultsPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const patientInfo = location.state?.patientInfo;
+  const analysisData = location.state?.analysisData;
 
   // Redirect if no patient info
   if (!patientInfo) {
@@ -45,7 +47,28 @@ export default function ResultsPage() {
         </div>
 
         {/* Results Display */}
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto space-y-6">
+          {analysisData?.prediction && (
+            <Card className="border-2 border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-900/15">
+              <CardHeader>
+                <CardTitle className="text-xl">Model Prediction</CardTitle>
+                <CardDescription>
+                  The backend service returned the following prediction.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <p className="font-semibold text-gray-900 dark:text-white">
+                  Label: {analysisData.prediction.predicted_label || "Unknown"}
+                </p>
+                {analysisData.prediction.predicted_index !== undefined && (
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    Index: {analysisData.prediction.predicted_index}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           <ResultsDisplay patientInfo={patientInfo} />
         </div>
 

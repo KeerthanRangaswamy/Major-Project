@@ -44,8 +44,8 @@ export async function getRecommendation(
     );
   }
 
-  const mongoSession = await mongoose.startSession();
-  mongoSession.startTransaction();
+  const useDatabase = mongoose.connection.readyState === 1;
+  const modelBaseUrl = process.env.MODEL_BASE_URL || "http://127.0.0.1:8002";
 
   try {
     const formData = new FormData();
@@ -60,13 +60,31 @@ export async function getRecommendation(
       fsSync.createReadStream(`./src/uploads/${file.filename}`),
     );
 
-    /* Make the API Call for the Model Here... */
-    // const response = await axios.post(
-    //   `${process.env.MODEL_BASE_URL}/predict-health?${queryParams.toString()}`,
-    //   formData,
-    //   { headers: formData.getHeaders() },
-    // );
-    // const response = response.data;
+    const modelResponse = await axios.post(
+      `${modelBaseUrl}/predict-health?${queryParams.toString()}`,
+      formData,
+      { headers: formData.getHeaders() },
+    );
+
+    const response = modelResponse.data;
+
+    if (!useDatabase) {
+      await fs.rm(`./src/uploads/${file.filename}`);
+      return sendSuccess(
+        res,
+        "Analysis completed successfully!",
+        {
+          age,
+          gender: gender.toLowerCase(),
+          ...(name && { name }),
+          result: response?.prediction ?? response,
+        },
+        200,
+      );
+    }
+
+    const mongoSession = await mongoose.startSession();
+    mongoSession.startTransaction();
 
     const savedFile = await AudioFile.insertOne(
       {
@@ -83,6 +101,12 @@ export async function getRecommendation(
         age,
         gender: gender.toLowerCase(),
         ...(name && { name }),
+        result:
+          response?.prediction?.predicted_label ??
+          response?.prediction?.predictedLabel ??
+          response?.prediction?.predicted_index ??
+          response?.prediction ??
+          response,
       },
       { session: mongoSession },
     );
@@ -105,11 +129,16 @@ export async function getRecommendation(
     return sendSuccess(
       res,
       "Audio file saved successfully!",
-      responseData,
+      {
+        ...responseData,
+        result: response?.prediction ?? response,
+      },
       201,
     );
   } catch (error) {
-    await mongoSession.abortTransaction();
+    if (useDatabase) {
+      await mongoSession.abortTransaction();
+    }
     await fs.rm(`./src/uploads/${file.filename}`);
     return next(error);
   }

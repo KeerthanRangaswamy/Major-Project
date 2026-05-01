@@ -47,15 +47,41 @@ export default function AnalyzePage() {
 
     setIsAnalyzing(true);
 
-    // Simulate ML model processing
-    setTimeout(() => {
+    try {
+      const formData = new FormData();
+      formData.append("age", patientInfo.age);
+      formData.append("gender", patientInfo.gender);
+      if (patientInfo.name) {
+        formData.append("name", patientInfo.name);
+      }
+
+      const file = audioBlob instanceof File ? audioBlob : new File([audioBlob], "recording.wav", { type: audioBlob?.type || "audio/wav" });
+      formData.append("file", file, file.name || "recording.wav");
+
+      const response = await fetch("http://127.0.0.1:4000/api/analysis/recommend", {
+        method: "POST",
+        body: formData,
+      });
+
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload?.message || "Analysis request failed");
+      }
+
       setProgress(100);
-      setTimeout(() => {
-        setIsAnalyzing(false);
-        // Navigate to results page with patient info
-        navigate("/results", { state: { patientInfo } });
-      }, 300);
-    }, 3000);
+      navigate("/results", {
+        state: {
+          patientInfo,
+          analysisData: payload?.data ?? payload,
+        },
+      });
+    } catch (error) {
+      console.error(error);
+      alert(error.message || "Failed to analyze audio");
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   return (

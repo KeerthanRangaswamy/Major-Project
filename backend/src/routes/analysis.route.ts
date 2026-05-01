@@ -4,12 +4,11 @@ import {
   getAnalysisHistory,
   getRecommendation,
 } from "../controllers/analysis.controller";
-import { checkAuth } from "../middlewares/auth.middleware";
 import upload from "../config/multer";
 
 const router = express.Router();
 
-router.post("/recommend", checkAuth, upload.single("file"), getRecommendation);
+router.post("/recommend", upload.single("file"), getRecommendation);
 
 router.get("/history", checkAuth, getAnalysisHistory);
 
