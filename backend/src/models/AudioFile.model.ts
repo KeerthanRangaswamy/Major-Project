@@ -13,7 +13,7 @@ const audioFileSchema = new mongoose.Schema<AudioFileDocument, AudioFileModel>(
       required: true,
     },
     userId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: String,
       required: true,
     },
     createdAt: {

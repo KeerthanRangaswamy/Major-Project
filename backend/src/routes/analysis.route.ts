@@ -10,8 +10,8 @@ const router = express.Router();
 
 router.post("/recommend", upload.single("file"), getRecommendation);
 
-router.get("/history", checkAuth, getAnalysisHistory);
+router.get("/history", getAnalysisHistory);
 
-router.delete("/history/:analysisId", checkAuth, deleteAnalysisHistory);
+router.delete("/history/:analysisId", deleteAnalysisHistory);
 
 export default router;

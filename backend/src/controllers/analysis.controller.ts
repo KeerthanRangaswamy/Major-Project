@@ -14,7 +14,6 @@ import {
 import Analysis from "../models/Analysis.model";
 import AudioFile from "../models/AudioFile.model";
 import FormData from "form-data";
-import { URLSearchParams } from "node:url";
 
 export async function getRecommendation(
   req: Request,
@@ -45,15 +44,15 @@ export async function getRecommendation(
   }
 
   const useDatabase = mongoose.connection.readyState === 1;
-  const modelBaseUrl = process.env.MODEL_BASE_URL || "http://127.0.0.1:8002";
+  const modelBaseUrl = process.env.MODEL_BASE_URL || "http://127.0.0.1:8001";
 
   try {
     const formData = new FormData();
-    const queryParams = new URLSearchParams({
-      age: age.toString(),
-      gender: gender.toLowerCase(),
-      ...(name && { name }),
-    });
+    formData.append("age", age.toString());
+    formData.append("gender", gender.toLowerCase());
+    if (name) {
+      formData.append("name", name);
+    }
 
     formData.append(
       "file",
@@ -61,7 +60,7 @@ export async function getRecommendation(
     );
 
     const modelResponse = await axios.post(
-      `${modelBaseUrl}/predict-health?${queryParams.toString()}`,
+      `${modelBaseUrl}/predict-health`,
       formData,
       { headers: formData.getHeaders() },
     );
@@ -83,33 +82,24 @@ export async function getRecommendation(
       );
     }
 
-    const mongoSession = await mongoose.startSession();
-    mongoSession.startTransaction();
-
-    const savedFile = await AudioFile.insertOne(
-      {
-        originalFileName: file.originalname,
-        fileId: path.parse(file.filename).name,
-        userId: req.userId,
-      },
-      { session: mongoSession },
-    );
-    const analysisRecord = await Analysis.insertOne(
-      {
-        userId: req.userId,
-        audioFile: savedFile._id,
-        age,
-        gender: gender.toLowerCase(),
-        ...(name && { name }),
-        result:
-          response?.prediction?.predicted_label ??
-          response?.prediction?.predictedLabel ??
-          response?.prediction?.predicted_index ??
-          response?.prediction ??
-          response,
-      },
-      { session: mongoSession },
-    );
+    const savedFile = await AudioFile.insertOne({
+      originalFileName: file.originalname,
+      fileId: path.parse(file.filename).name,
+      userId: req.userId || "guest",
+    });
+    const analysisRecord = await Analysis.insertOne({
+      userId: req.userId || "guest",
+      audioFile: savedFile._id,
+      age,
+      gender: gender.toLowerCase(),
+      ...(name && { name }),
+      result:
+        response?.prediction?.predicted_label ??
+        response?.prediction?.predictedLabel ??
+        response?.prediction?.predicted_index ??
+        response?.prediction ??
+        response,
+    });
 
     const responseData = {
       age: analysisRecord.age,
@@ -124,8 +114,6 @@ export async function getRecommendation(
       result: analysisRecord.result,
     };
 
-    await mongoSession.commitTransaction();
-
     return sendSuccess(
       res,
       "Audio file saved successfully!",
@@ -136,9 +124,6 @@ export async function getRecommendation(
       201,
     );
   } catch (error) {
-    if (useDatabase) {
-      await mongoSession.abortTransaction();
-    }
     await fs.rm(`./src/uploads/${file.filename}`);
     return next(error);
   }

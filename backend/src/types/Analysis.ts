@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 export interface AnalysisBase {
-  userId: mongoose.Schema.Types.ObjectId;
+  userId: string;
   audioFile: mongoose.Schema.Types.ObjectId;
   age: number;
   gender: string;

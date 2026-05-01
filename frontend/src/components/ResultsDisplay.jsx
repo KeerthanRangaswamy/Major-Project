@@ -11,14 +11,214 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-// Dummy prescription generator
-const generateDummyPrescription = (patientInfo) => {
-  const conditions = ["Normal", "Mild Cough", "Severe Cough", "Asthma"];
-  const randomCondition =
-    conditions[Math.floor(Math.random() * conditions.length)];
-
+// Map ML predictions to medical recommendations
+const getPrescriptionForPrediction = (predictedLabel, probabilities) => {
   const prescriptions = {
-    Normal: {
+    Asthma: {
+      diagnosis: "Asthma Indicators Detected",
+      severity: "high",
+      summary:
+        "Voice analysis shows patterns consistent with asthma. Immediate medical evaluation recommended.",
+      findings: [
+        "Wheezing patterns detected in voice analysis",
+        "Restricted airflow indicators",
+        "Breathing difficulty patterns observed",
+        "Chronic respiratory stress signals",
+      ],
+      recommendations: [
+        "Consult with a pulmonologist for proper diagnosis",
+        "Avoid known allergens and environmental triggers",
+        "Keep rescue inhaler readily available",
+        "Monitor peak flow regularly",
+        "Avoid strenuous physical activity until assessed",
+        "Stay in clean, dust-free environment",
+      ],
+      medications: [
+        "Quick-relief inhaler (Albuterol) - as prescribed",
+        "Long-term controller medication - consult pulmonologist",
+        "Corticosteroids if severe - doctor prescribed",
+        "Antihistamines for allergy management",
+      ],
+    },
+    Bronchiectasis: {
+      diagnosis: "Bronchiectasis Indicators Detected",
+      severity: "high",
+      summary:
+        "Analysis indicates potential bronchiectasis patterns. Medical consultation is strongly recommended.",
+      findings: [
+        "Chronic coughing patterns detected",
+        "Excessive mucus production indicators",
+        "Airway damage patterns observed",
+        "Persistent respiratory infection signals",
+      ],
+      recommendations: [
+        "Seek immediate medical attention from a respiratory specialist",
+        "Begin airway clearance therapy",
+        "Regular monitoring and follow-up appointments",
+        "Stay well-hydrated to help clear mucus",
+        "Avoid smoking and secondhand smoke",
+        "Get vaccinated against respiratory infections",
+      ],
+      medications: [
+        "Mucolytics to help clear mucus - as prescribed",
+        "Antibiotics if infection present - doctor prescribed",
+        "Bronchodilators to open airways",
+        "Corticosteroids if needed - consult specialist",
+      ],
+    },
+    Bronchiolitis: {
+      diagnosis: "Bronchiolitis Indicators Detected",
+      severity: "medium",
+      summary:
+        "Voice analysis suggests bronchiolitis patterns. Medical evaluation recommended.",
+      findings: [
+        "Small airway inflammation detected",
+        "Wheezing and crackle patterns observed",
+        "Respiratory tract irritation indicators",
+        "Typical viral infection signature patterns",
+      ],
+      recommendations: [
+        "Consult with healthcare provider for evaluation",
+        "Get adequate rest and sleep",
+        "Stay well-hydrated",
+        "Monitor symptoms closely",
+        "Avoid smoke and air pollutants",
+        "Use humidifier to ease breathing",
+      ],
+      medications: [
+        "Bronchodilators as needed - doctor prescribed",
+        "Cough suppressants for symptomatic relief",
+        "Fever reducers if temperature elevated",
+        "Antiviral medications if applicable",
+      ],
+    },
+    COPD: {
+      diagnosis: "COPD (Chronic Obstructive Pulmonary Disease) Indicators",
+      severity: "high",
+      summary:
+        "Analysis reveals COPD patterns. Urgent medical consultation is essential.",
+      findings: [
+        "Persistent obstruction of airflow detected",
+        "Emphysema or chronic bronchitis patterns",
+        "Long-term lung damage indicators",
+        "Progressive respiratory decline signals",
+      ],
+      recommendations: [
+        "Schedule urgent appointment with pulmonologist",
+        "Quit smoking immediately if applicable",
+        "Begin pulmonary rehabilitation program",
+        "Monitor oxygen saturation regularly",
+        "Exercise within limitations to maintain fitness",
+        "Maintain clean home environment",
+      ],
+      medications: [
+        "Long-acting bronchodilators - as prescribed",
+        "Inhaled corticosteroids - doctor prescribed",
+        "Short-acting beta-agonists for acute symptoms",
+        "Phosphodiesterase-4 inhibitors if needed",
+      ],
+    },
+    LRTI: {
+      diagnosis: "Lower Respiratory Tract Infection (LRTI) Detected",
+      severity: "medium",
+      summary:
+        "Analysis indicates lower respiratory tract infection patterns. Medical evaluation recommended.",
+      findings: [
+        "Lower airway inflammation detected",
+        "Productive cough patterns observed",
+        "Bacterial or viral infection indicators",
+        "Lung tissue involvement signals",
+      ],
+      recommendations: [
+        "Consult with healthcare provider for diagnosis",
+        "Get complete rest and avoid strenuous activity",
+        "Drink plenty of fluids",
+        "Use steam inhalation to relieve symptoms",
+        "Monitor temperature and symptoms",
+        "Cover mouth when coughing",
+      ],
+      medications: [
+        "Antibiotics if bacterial - doctor prescribed",
+        "Cough expectorant to clear mucus",
+        "Pain relievers for throat discomfort",
+        "Fever reducers as needed",
+      ],
+    },
+    URTI: {
+      diagnosis: "Upper Respiratory Tract Infection (URTI) Detected",
+      severity: "low",
+      summary:
+        "Analysis shows upper respiratory tract infection patterns. Rest and monitoring recommended.",
+      findings: [
+        "Upper airway inflammation detected",
+        "Nasal or throat involvement observed",
+        "Typical viral infection signature",
+        "Mild respiratory distress indicators",
+      ],
+      recommendations: [
+        "Rest and allow body to recover naturally",
+        "Stay hydrated with warm fluids",
+        "Use honey or lozenges for throat relief",
+        "Gargle with salt water",
+        "Monitor symptoms for improvement",
+        "Avoid close contact with others to prevent spread",
+      ],
+      medications: [
+        "Over-the-counter pain relievers as needed",
+        "Decongestants for congestion relief",
+        "Cough drops for throat soothing",
+        "Vitamin C supplements",
+      ],
+    },
+    Healthy: {
+      diagnosis: "Normal Respiratory Function",
+      severity: "low",
+      summary:
+        "Your respiratory system appears to be functioning normally. No immediate concerns detected.",
+      findings: [
+        "Clear breathing patterns observed",
+        "No signs of respiratory distress",
+        "Voice quality is normal",
+        "Lung function appears healthy",
+      ],
+      recommendations: [
+        "Continue maintaining a healthy lifestyle",
+        "Stay hydrated and get adequate rest",
+        "Regular exercise to maintain lung health",
+        "Monitor any changes in breathing patterns",
+        "Avoid smoking and secondhand smoke",
+      ],
+      medications: [],
+    },
+  };
+
+  return prescriptions[predictedLabel] || prescriptions.Healthy;
+};
+
+export default function ResultsDisplay({ patientInfo, analysisData }) {
+  const [results] = useState(() => {
+    if (analysisData?.result?.predicted_label) {
+      // Use actual ML prediction
+      const prescription = getPrescriptionForPrediction(
+        analysisData.result.predicted_label,
+        analysisData.result.probabilities,
+      );
+      return {
+        ...prescription,
+        patientName: patientInfo?.name || "Patient",
+        age: patientInfo?.age || "N/A",
+        gender: patientInfo?.gender || "N/A",
+        date: new Date().toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+        reportId: `RP${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+        prediction: analysisData.result,
+      };
+    }
+    // Fallback to dummy if no data
+    return {
       diagnosis: "Normal Respiratory Function",
       severity: "low",
       summary:
@@ -36,103 +236,17 @@ const generateDummyPrescription = (patientInfo) => {
         "Monitor any changes in breathing patterns",
       ],
       medications: [],
-    },
-    "Mild Cough": {
-      diagnosis: "Mild Cough Detected",
-      severity: "medium",
-      summary:
-        "Analysis indicates presence of mild cough. This is typically not serious but should be monitored.",
-      findings: [
-        "Mild irritation in respiratory tract detected",
-        "Slight changes in voice patterns",
-        "No severe respiratory distress",
-        "Probable viral or environmental cause",
-      ],
-      recommendations: [
-        "Increase fluid intake (water, warm beverages)",
-        "Use honey or lozenges for throat relief",
-        "Avoid irritants like smoke and pollution",
-        "Get adequate rest and sleep",
-        "Monitor symptoms for 3-5 days",
-      ],
-      medications: [
-        "Over-the-counter cough syrup (as needed)",
-        "Vitamin C supplements",
-        "Steam inhalation twice daily",
-      ],
-    },
-    "Severe Cough": {
-      diagnosis: "Severe Cough Detected",
-      severity: "high",
-      summary:
-        "Analysis indicates significant cough patterns. Medical consultation is recommended.",
-      findings: [
-        "Persistent coughing patterns detected",
-        "Significant respiratory tract irritation",
-        "Possible bacterial or viral infection",
-        "Vocal strain evident in analysis",
-      ],
-      recommendations: [
-        "Consult a healthcare professional immediately",
-        "Complete rest and avoid strenuous activities",
-        "Stay well-hydrated",
-        "Use a humidifier in your room",
-        "Avoid cold beverages and foods",
-        "Cover mouth when coughing",
-      ],
-      medications: [
-        "Prescribed cough suppressant (consult doctor)",
-        "Antibiotics if bacterial infection (doctor prescribed)",
-        "Expectorant to clear mucus",
-        "Pain relievers for throat discomfort",
-      ],
-    },
-    Asthma: {
-      diagnosis: "Asthma Indicators Detected",
-      severity: "high",
-      summary:
-        "Voice analysis shows patterns consistent with asthma. Immediate medical evaluation required.",
-      findings: [
-        "Wheezing patterns detected in voice analysis",
-        "Restricted airflow indicators",
-        "Breathing difficulty patterns observed",
-        "Chronic respiratory stress signals",
-      ],
-      recommendations: [
-        "**Seek immediate medical attention**",
-        "Avoid known allergens and triggers",
-        "Keep rescue inhaler readily available",
-        "Monitor peak flow regularly",
-        "Avoid strenuous physical activity until assessed",
-        "Stay in clean, dust-free environment",
-      ],
-      medications: [
-        "Quick-relief inhaler (Albuterol) - as prescribed",
-        "Long-term controller medication (consult pulmonologist)",
-        "Corticosteroids if severe (doctor prescribed)",
-        "Antihistamines for allergy management",
-      ],
-    },
-  };
-
-  const result = prescriptions[randomCondition];
-
-  return {
-    ...result,
-    patientName: patientInfo?.name || "Patient",
-    age: patientInfo?.age || "N/A",
-    gender: patientInfo?.gender || "N/A",
-    date: new Date().toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    }),
-    reportId: `RP${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-  };
-};
-
-export default function ResultsDisplay({ patientInfo }) {
-  const [results] = useState(() => generateDummyPrescription(patientInfo));
+      patientName: patientInfo?.name || "Patient",
+      age: patientInfo?.age || "N/A",
+      gender: patientInfo?.gender || "N/A",
+      date: new Date().toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
+      reportId: `RP${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+    };
+  });
 
   const getSeverityColor = (severity) => {
     switch (severity) {

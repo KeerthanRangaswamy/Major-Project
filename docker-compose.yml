@@ -1,13 +1,8 @@
-version: '3.8'
-
 services:
-  # MongoDB Database
   mongodb:
-    image: mongo:7.0-alpine
+    image: mongo:7.0
     container_name: healthvoice-mongodb
     restart: unless-stopped
-    networks:
-      - healthvoice-network
     ports:
       - "${MONGO_PORT:-27017}:27017"
     environment:
@@ -16,48 +11,47 @@ services:
       MONGO_INITDB_DATABASE: ${MONGO_DB:-healthvoice}
     volumes:
       - mongodb_data:/data/db
-      - mongodb_config:/data/configdb
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
-      interval: 10s
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh --quiet \"mongodb://$$MONGO_INITDB_ROOT_USERNAME:$$MONGO_INITDB_ROOT_PASSWORD@localhost:27017/admin?authSource=admin\" --eval \"db.runCommand({ ping: 1 }).ok\" >/dev/null",
+        ]
+      interval: 5s
       timeout: 5s
-      retries: 5
-      start_period: 40s
+      retries: 20
 
-  # ML Services (FastAPI)
   ml-service:
     build:
       context: ./services
       dockerfile: Dockerfile
     container_name: healthvoice-ml-service
     restart: unless-stopped
-    networks:
-      - healthvoice-network
     ports:
       - "${ML_PORT:-8001}:8001"
     environment:
       PORT: 8001
+      PYTHONUNBUFFERED: 1
     volumes:
-      - ./services/models:/app/models:ro
-      - ./services/uploads:/app/uploads
+      - ./services:/app
     healthcheck:
-      test: curl -f http://localhost:8001/docs || exit 1
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    depends_on:
-      - mongodb
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8001/docs').read()",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
-  # Backend (Express + TypeScript)
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: healthvoice-backend
     restart: unless-stopped
-    networks:
-      - healthvoice-network
     ports:
       - "${BACKEND_PORT:-4000}:4000"
     environment:
@@ -69,46 +63,45 @@ services:
       CLIENT_URL: ${CLIENT_URL:-http://localhost:5173}
       MODEL_BASE_URL: ${MODEL_BASE_URL:-http://ml-service:8001}
     volumes:
-      - ./backend/src:/app/src
-      - backend_uploads:/app/src/uploads
+      - ./backend:/app
       - backend_node_modules:/app/node_modules
+      - backend_uploads:/app/src/uploads
     depends_on:
       mongodb:
         condition: service_healthy
       ml-service:
         condition: service_healthy
     healthcheck:
-      test: curl -f http://localhost:4000/api/health || exit 1
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:4000/api/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
-  # Frontend (React + Vite)
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: healthvoice-frontend
     restart: unless-stopped
-    networks:
-      - healthvoice-network
     ports:
       - "${FRONTEND_PORT:-5173}:5173"
     environment:
-      VITE_API_URL: ${VITE_API_URL:-http://backend:4000}
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:4000}
     volumes:
-      - ./frontend/src:/app/src
+      - ./frontend:/app
       - frontend_node_modules:/app/node_modules
     depends_on:
       backend:
         condition: service_healthy
 
-# Named Volumes for persistence
 volumes:
   mongodb_data:
-    driver: local
-  mongodb_config:
     driver: local
   backend_uploads:
     driver: local
@@ -116,8 +109,3 @@ volumes:
     driver: local
   frontend_node_modules:
     driver: local
-
-# Custom Network for service communication
-networks:
-  healthvoice-network:
-    driver: bridge

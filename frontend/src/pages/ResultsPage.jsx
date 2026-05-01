@@ -69,7 +69,7 @@ export default function ResultsPage() {
             </Card>
           )}
 
-          <ResultsDisplay patientInfo={patientInfo} />
+          <ResultsDisplay patientInfo={patientInfo} analysisData={analysisData} />
         </div>
 
         {/* Actions */}

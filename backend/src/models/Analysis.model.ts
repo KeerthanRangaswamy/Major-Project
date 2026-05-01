@@ -4,8 +4,7 @@ import { AnalysisDocument, AnalysisModel } from "../types/Analysis";
 const analysisSchema = new mongoose.Schema<AnalysisDocument, AnalysisModel>(
   {
     userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      type: String,
       required: true,
     },
     audioFile: {

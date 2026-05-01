@@ -4,7 +4,7 @@ export interface AudioFileBase {
   originalFileName: string;
   fileId: string;
   filename: string;
-  userId: mongoose.Schema.Types.ObjectId;
+  userId: string;
   audioEndPoint: string;
   createdAt: Date;
 }
